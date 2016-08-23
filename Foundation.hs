@@ -156,9 +156,9 @@ instance YesodAuth App where
                               , userPhone = fromMaybe "" phone
                               }
               in do
-                x <- insert user
-                setPassword (fromMaybe "" password) user
-                Authenticated <$> user 
+                userId <- insert user
+                _ <- setPassword (fromMaybe "" password) user
+                return $ Authenticated userId
 
 
     -- You can add other plugins like Google Email, email or OAuth here
