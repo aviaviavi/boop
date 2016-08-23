@@ -1,0 +1,26 @@
+-- example here
+
+-- User
+--     ident Text
+--     password Text Maybe
+--     UniqueUser ident
+--     deriving Typeable
+-- Email
+--     email Text
+--     userId UserId Maybe
+--     verkey Text Maybe
+--     UniqueEmail email
+-- just so shit compiles for now
+
+-- By default this file is used in Model.hs (which is imported by Foundation.hs)
+
+User
+    phone      Text
+    ident      Text
+    password   Text Maybe
+    UniqueUser phone
+    deriving Show
+Boop
+    booper    UserId
+    boopee    UserId
+    booped_at UTCTime default=now()
