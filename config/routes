@@ -5,6 +5,6 @@
 /robots.txt RobotsR GET
 
 / HomeR GET
-/login BoopLoginR GET
+/login BoopLoginR POST
 /unathorized NotLoggedInR GET
 /register RegisterR POST

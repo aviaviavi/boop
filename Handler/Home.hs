@@ -7,6 +7,7 @@ module Handler.Home where
 
 import Import
 import Yesod.Auth.HashDB
+import qualified Data.Text as T
 --import Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), renderBootstrap3,
 --                              withSmallInput)
 --import Text.Julius (RawJS (..))
@@ -47,22 +48,28 @@ getHomeR = do
 getNotLoggedInR :: Handler Value
 getNotLoggedInR = returnJson $ Ok "Please log in"
 
-getBoopLoginR :: Handler Value
-getBoopLoginR  = let testUsername = "test" in do
-    -- setCreds True Creds { credsIdent = testUsername, credsPlugin = "BoopAuth", credsExtra = []}
+postBoopLoginR :: Handler Value
+postBoopLoginR = do
+    regInfo <- requireJsonBody :: Handler RegisterPost
+    print regInfo
+    setCreds True $ toCreds regInfo BoopLogin
     returnJson . Ok $ "we'll never get here"
 
 postRegisterR :: Handler Value
 postRegisterR = do
     regInfo <- requireJsonBody :: Handler RegisterPost
     print regInfo
-    setCreds True $ toCreds regInfo
+    setCreds True $ toCreds regInfo BoopRegister
     returnJson . Ok $ "we'll never get here"
 
-toCreds :: RegisterPost -> Creds m
-toCreds regInfo = Creds { credsIdent = username regInfo
+toCreds :: RegisterPost -> AuthType -> Creds m
+toCreds regInfo auth = Creds { credsIdent = username regInfo
                         , credsPlugin = "BoopAuth"
-                        , credsExtra = [("password", password regInfo), ("phoneNumber", phoneNumber regInfo)]
+                        , credsExtra = [
+                            ("password", password regInfo)
+                          , ("phoneNumber", phoneNumber regInfo)
+                          , ("regType", T.pack $ show auth)
+                          ]
                         }
 
 

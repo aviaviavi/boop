@@ -15,10 +15,10 @@
 -- By default this file is used in Model.hs (which is imported by Foundation.hs)
 
 User
-    phone      Text
     ident      Text
+    phone      Text
     password   Text Maybe
-    UniqueUser phone
+    UniqueUser ident
     deriving Show
 Boop
     booper    UserId

@@ -11,6 +11,9 @@ import Yesod.Auth.HashDB
 import qualified Yesod.Core.Unsafe as Unsafe
 import qualified Data.CaseInsensitive as CI
 import qualified Data.Text.Encoding as TE
+import qualified Data.Text as T
+import Yesod.Auth.Message
+import Prelude              (read)
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -23,6 +26,8 @@ data App = App
     , appHttpManager :: Manager
     , appLogger      :: Logger
     }
+
+data AuthType = BoopLogin | BoopRegister deriving (Read, Show)
 
 -- This is where we define all of the routes in our application. For a full
 -- explanation of the syntax, please see:
@@ -145,19 +150,30 @@ instance YesodAuth App where
 
     -- gets called when you setCreds
     authenticate creds = runDB $ do
-        x <- getBy $ UniqueUser $ credsIdent creds
-        case x of
-            Just (Entity uid _) -> return $ Authenticated uid
-            Nothing ->
-              let password = lookup "password" $ credsExtra creds
-                  phone = lookup "phoneNumber" $ credsExtra creds
-                  user = User { userIdent = credsIdent creds
-                              , userPassword = Nothing
-                              , userPhone = fromMaybe "" phone
-                              }
+        let password = lookup "password" $ credsExtra creds
+            phone = lookup "phoneNumber" $ credsExtra creds
+            regType = read $ credExtraToString "regType" creds :: AuthType
+        x <- getBy . UniqueUser $ credsIdent creds
+        print $ credsExtra creds
+        print regType
+        case (x, regType) of
+            (Just user@(Entity uid _), BoopLogin) ->
+              let valid = validatePass (entityVal user) (fromMaybe "" password) in
+              print password >> print valid >>
+              if fromMaybe False valid then
+                  return $ Authenticated uid
+              else
+                  return $ UserError InvalidLogin
+            (Just _, BoopRegister) -> return $ UserError InvalidKey
+            (Nothing, BoopRegister) ->
+              let user = User { userIdent = credsIdent creds
+                          , userPassword = Nothing
+                          , userPhone = fromMaybe "" phone
+                          }
               in do
                 userId <- insert user
-                _ <- setPassword (fromMaybe "" password) user
+                updated <- setPassword (fromMaybe "" password) user
+                print updated
                 return $ Authenticated userId
 
 
@@ -181,6 +197,9 @@ instance HasHttpManager App where
 
 unsafeHandler :: App -> Handler a -> IO a
 unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
+
+credExtraToString :: Text -> Creds master -> String
+credExtraToString key creds = T.unpack $ fromMaybe "" (lookup key $ credsExtra creds)
 
 -- Note: Some functionality previously present in the scaffolding has been
 -- moved to documentation in the Wiki. Following are some hopefully helpful
