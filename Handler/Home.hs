@@ -5,9 +5,9 @@
 
 module Handler.Home where
 
-import Import
-import Yesod.Auth.HashDB
-import qualified Data.Text as T
+import qualified Data.Text         as T
+import           Import
+import           Yesod.Auth.HashDB
 --import Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), renderBootstrap3,
 --                              withSmallInput)
 --import Text.Julius (RawJS (..))
@@ -42,7 +42,6 @@ getHomeR :: Handler Value
 getHomeR = do
   auth <- requireAuth
   let username = userIdent . entityVal $ auth
-  putStrLn username
   returnJson . Ok $ "You are signed in as " ++ username
 
 getNotLoggedInR :: Handler Value
@@ -51,16 +50,16 @@ getNotLoggedInR = returnJson $ Ok "Please log in"
 postBoopLoginR :: Handler Value
 postBoopLoginR = do
     regInfo <- requireJsonBody :: Handler RegisterPost
-    print regInfo
-    setCreds True $ toCreds regInfo BoopLogin
-    returnJson . Ok $ "we'll never get here"
+    setCreds False $ toCreds regInfo BoopLogin
+    auth <- maybeAuth
+    returnJson $ maybe (Ok "Invalid credentials") (\_ -> Ok $ "Logged in success! as " ++ username regInfo) auth
 
 postRegisterR :: Handler Value
 postRegisterR = do
     regInfo <- requireJsonBody :: Handler RegisterPost
-    print regInfo
-    setCreds True $ toCreds regInfo BoopRegister
-    returnJson . Ok $ "we'll never get here"
+    setCreds False $ toCreds regInfo BoopRegister
+    auth <- maybeAuth
+    returnJson $ maybe (Ok "The user already exists") (\_ -> Ok "success") auth
 
 toCreds :: RegisterPost -> AuthType -> Creds m
 toCreds regInfo auth = Creds { credsIdent = username regInfo

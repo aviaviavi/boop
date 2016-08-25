@@ -154,17 +154,14 @@ instance YesodAuth App where
             phone = lookup "phoneNumber" $ credsExtra creds
             regType = read $ credExtraToString "regType" creds :: AuthType
         x <- getBy . UniqueUser $ credsIdent creds
-        print $ credsExtra creds
-        print regType
         case (x, regType) of
             (Just user@(Entity uid _), BoopLogin) ->
               let valid = validatePass (entityVal user) (fromMaybe "" password) in
-              print password >> print valid >>
               if fromMaybe False valid then
                   return $ Authenticated uid
               else
                   return $ UserError InvalidLogin
-            (Just _, BoopRegister) -> return $ UserError InvalidKey
+            (Just _, BoopRegister) -> return $ ServerError "User exists"
             (Nothing, BoopRegister) ->
               let user = User { userIdent = credsIdent creds
                           , userPassword = Nothing
@@ -172,9 +169,10 @@ instance YesodAuth App where
                           }
               in do
                 userId <- insert user
-                updated <- setPassword (fromMaybe "" password) user
-                print updated
+                updatedUser <- setPassword (fromMaybe "" password) user
+                _ <- update userId [UserPassword =. userPassword updatedUser]
                 return $ Authenticated userId
+            _ -> return $ ServerError "auth got unexpected input"
 
 
     -- You can add other plugins like Google Email, email or OAuth here
